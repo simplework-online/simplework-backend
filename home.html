@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- create form to uplaod multiple images and document on CLick -->
+
+    <form
+      action="http://localhost:5000/create-service/step-four"
+      method="post"
+      enctype="multipart/form-data"
+    >
+      <input type="file" name="servicesImages" multiple />
+      <br />
+      <input type="file" name="serviceDocuments" multiple />
+      <input type="submit" name="submit" value="Upload" />
+    </form>
+  </body>
+</html>

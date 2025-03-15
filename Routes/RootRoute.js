@@ -10,4 +10,5 @@ router.use("/", require("./Chat"));
 router.use("/", require("./Category"));
 router.use("/", require("./notification"));
 router.use("/", require("./JobPost"));
+router.use("/admin", require("./admin"));
 module.exports = router;

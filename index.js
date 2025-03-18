@@ -20,18 +20,18 @@ const orderRoutes = require('./Routes/Order')
 app.use(cookieParser());
 const ios = notificationController.io;
 const socketIdMap = notificationController.socketIdMap;
-const allowedOrigins = [
-    'http://145.223.101.250:3000',
-    'http://145.223.101.250:5173',
-    'http://145.223.101.250:3000',
-    'https://simplework.online',
-    'http://simplework.online',
-    'https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app'
-];
+// const allowedOrigins = [
+//     'http://145.223.101.250:3000',
+//     'http://145.223.101.250:5173',
+//     'http://145.223.101.250:3000',
+//     'https://simplework.online',
+//     'http://simplework.online',
+//     'https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app'
+// ];
 
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins,
+        origin: '*',
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'CREATE'],
         credentials: true,
     },

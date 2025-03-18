@@ -25,6 +25,7 @@ const allowedOrigins = [
     'http://145.223.101.250:3002',
     'http://145.223.101.250:3001',
     'http://145.223.101.250:3000',
+    'http://145.223.101.250',
     'https://simplework.online',
     'http://simplework.online',
     'https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app'

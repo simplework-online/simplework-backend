@@ -42,10 +42,8 @@ module.exports.io = io;
 
 app.use(
     cors({
-        origin: "https://simplework.online",
-        // origin: "http://127.0.0.1:5173",
-        // origin: "https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app",
-                methods: ['GET', 'POST', 'PUT', 'DELETE','CREATE'],
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE','CREATE'],
         credentials: true,
     })
 );

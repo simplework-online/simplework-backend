@@ -5,7 +5,7 @@ const server = http.createServer(app);
 const { Server } = require('socket.io');
 const path = require('path');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 require('dotenv').config();
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -21,9 +21,9 @@ app.use(cookieParser());
 const ios = notificationController.io;
 const socketIdMap = notificationController.socketIdMap;
 const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5000',
+    'http://145.223.101.250:3000',
+    'http://145.223.101.250:5173',
+    'http://145.223.101.250:3000',
     'https://simplework.online',
     'http://simplework.online',
     'https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app'
@@ -113,7 +113,7 @@ io.on('connection', (socket) => {
       const { sender, receiver, type, message } = data;
   
       // Make a POST request to the backend to create a new notification
-      fetch('http://localhost:5000/notification', {
+      fetch('http://145.223.101.250:3000/notification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

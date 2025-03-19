@@ -17,7 +17,7 @@ const orderRoutes = require('./Routes/Order');
 const SendOffer = require('./Routes/sendOffer');
 const UpdateProfile = require('./Routes/updateProfile');
 
-const PORT = process.env.PORT || 3000;
+// const PORT = process.env.PORT || 3000;
 
 // Allowed Origins
 const allowedOrigins = [

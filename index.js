@@ -31,7 +31,7 @@ const allowedOrigins = [
   "https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app",
   "http://localhost:3001",
   "http://localhost:3000",
-  "https://20d6-119-73-99-89.ngrok-free.app",
+  "https://8518-119-73-99-41.ngrok-free.app",
 ];
 
 // Proper CORS Middleware

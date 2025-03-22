@@ -15,7 +15,7 @@ const paypalWithdraw = async (req, res) => {
     items: [
       {
         recipient_type: "EMAIL",
-        amount: { value: wallet.balance, currency: "USD" },
+        amount: { value: wallet.balance.toFixed(2), currency: "USD" },
         receiver: wallet.paypalEmail,
         note: "Withdrawal from your earnings",
         sender_item_id: userId,
@@ -24,7 +24,10 @@ const paypalWithdraw = async (req, res) => {
   };
 
   paypal.payout.create(payoutJson, async (error, payout) => {
-    if (error) return res.status(500).json({ error: "Withdrawal failed" });
+    if (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Withdrawal failed" });
+    }
 
     wallet.balance = 0;
     await wallet.save();

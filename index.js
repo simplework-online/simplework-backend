@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+require("dotenv").config();
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
@@ -8,7 +9,6 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
 const cookieParser = require("cookie-parser");
-require("dotenv").config();
 const dbConnect = require("./Config/mongo");
 const { sendMessage } = require("./Controllers/Chat/Message");
 const notificationRoutes = require("./Routes/notification");
@@ -16,6 +16,8 @@ const notificationController = require("./Controllers/Notification/notification"
 const orderRoutes = require("./Routes/Order");
 const SendOffer = require("./Routes/sendOffer");
 const UpdateProfile = require("./Routes/updateProfile");
+const Transaction = require("./Models/Transaction");
+const Stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const PORT = process.env.PORT || 3000;
 
@@ -31,7 +33,7 @@ const allowedOrigins = [
   "https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app",
   "http://localhost:3001",
   "http://localhost:3000",
-  "https://8518-119-73-99-41.ngrok-free.app",
+  "https://6aa0-119-73-99-41.ngrok-free.app",
 ];
 
 // Proper CORS Middleware
@@ -47,6 +49,43 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
+);
+
+app.post(
+  "/stripe-webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    let event;
+
+    try {
+      event = Stripe.webhooks.constructEvent(
+        req.body,
+        req.headers["stripe-signature"],
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const transactionId = session.metadata.transaction_id;
+
+      try {
+        await Transaction.findByIdAndUpdate(transactionId, {
+          paymentIntentId: session.payment_intent,
+        });
+
+        console.log(`Transaction ${transactionId} marked as Completed`);
+      } catch (err) {
+        console.error("Transaction update error:", err);
+        return res.status(500).send("Transaction update failed");
+      }
+    }
+
+    res.sendStatus(200);
+  }
 );
 
 app.use(cookieParser());

@@ -12,7 +12,7 @@ const transactionSchema = new mongoose.Schema({
   paymentMethod: String,
   status: {
     type: String,
-    enum: ["Pending", "Escrow", "Released", "Disputed"],
+    enum: ["Pending", "Escrow", "Released", "Refunded"],
     default: "Escrow",
   },
 

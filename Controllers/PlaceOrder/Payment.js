@@ -181,63 +181,47 @@ const paymentSuccess = async (req, res) => {
   }
 };
 
-//refund
-const refundPaypalPayment = async (req, res) => {
+const refundPayment = async (req, res) => {
   const { transactionId } = req.body;
 
   try {
     const transaction = await Transaction.findById(transactionId);
-    if (!transaction || transaction.paymentMethod !== "PayPal") {
-      return res
-        .status(404)
-        .json({ error: "Transaction not found or invalid payment method" });
+    if (!transaction) {
+      return res.status(404).json({ error: "Transaction not found" });
     }
 
-    const saleId = transaction.paymentId; // PayPal sale ID
-    paypal.sale.refund(saleId, {}, async (error, refund) => {
-      if (error) {
-        console.error("PayPal Refund Error:", error);
-        return res.status(500).json({ error: "PayPal refund failed" });
-      }
+    if (transaction.paymentMethod === "PayPal") {
+      const saleId = transaction.paymentId; // PayPal sale ID
+      paypal.sale.refund(saleId, {}, async (error, refund) => {
+        if (error) {
+          console.error("PayPal Refund Error:", error);
+          return res.status(500).json({ error: "PayPal refund failed" });
+        }
+
+        transaction.status = "Refunded";
+        await transaction.save();
+
+        res
+          .status(200)
+          .json({ success: true, message: "PayPal refund successful", refund });
+      });
+    } else if (transaction.paymentMethod === "Stripe") {
+      const refund = await Stripe.refunds.create({
+        payment_intent: transaction.paymentIntentId,
+      });
 
       transaction.status = "Refunded";
       await transaction.save();
 
       res
         .status(200)
-        .json({ success: true, message: "PayPal refund successful", refund });
-    });
-  } catch (error) {
-    console.error("PayPal Refund Error:", error);
-    res.status(500).json({ error: "PayPal refund failed" });
-  }
-};
-
-//refund
-const refundStripePayment = async (req, res) => {
-  const { transactionId } = req.body;
-
-  try {
-    const transaction = await Transaction.findById(transactionId);
-    if (!transaction || transaction.paymentMethod !== "Stripe") {
-      return res
-        .status(404)
-        .json({ error: "Transaction not found or invalid payment method" });
+        .json({ success: true, message: "Stripe refund successful", refund });
+    } else {
+      res.status(400).json({ error: "Invalid payment method" });
     }
-
-    const refund = await Stripe.refunds.create({
-      payment_intent: transaction.paymentIntentId,
-    });
-
-    transaction.status = "Refunded";
-    await transaction.save();
-
-    res
-      .status(200)
-      .json({ success: true, message: "Stripe refund successful", refund });
   } catch (error) {
-    console.error("Stripe Refund Error:", error);
-    res.status(500).json({ error: "Stripe refund failed" });
+    console.error("Refund Error:", error);
+    res.status(500).json({ error: "Refund failed" });
   }
 };
 
@@ -293,6 +277,6 @@ module.exports = {
   paymentSuccess,
   payWithStripe,
   updateOrderTransaction,
-
+  refundPayment,
   transactionCancelled,
 };

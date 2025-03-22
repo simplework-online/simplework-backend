@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 const {
@@ -11,21 +11,20 @@ const {
   INPROGRESSorder,
   CancelledOrder,
   createOrder,
-  changeOrderStatus
-} = require('../Controllers/BuyerOrder/BuyerOrder');
-// const authenticate = require('../middleware/authenticate'); 
+  changeOrderStatus,
+  acceptOrderAndTransferAmount,
+} = require("../Controllers/BuyerOrder/BuyerOrder");
+const { auth } = require("../Middlewares/auth");
 const upload = require("../Middlewares/upload");
-
-
 
 router.post("/create", createOrder);
 
 // router.get('/:orderId', authenticate, getOneOrder);
 
 router.post("/change-status", changeOrderStatus);
+router.patch("/:orderId/accept", auth, acceptOrderAndTransferAmount);
 
-
-router.get('/', getAllOrders);
+router.get("/", getAllOrders);
 
 // router.delete('/:orderId', authenticate, deleteOneOrder);
 

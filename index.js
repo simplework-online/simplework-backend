@@ -131,7 +131,7 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to Database
-dbConnect();
+dbConnect);
 
 // Start Server
 server.listen(PORT, () => {

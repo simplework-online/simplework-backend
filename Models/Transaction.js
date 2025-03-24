@@ -18,7 +18,7 @@ const transactionSchema = new mongoose.Schema({
 
   releaseDate: Date,
   paymentIntentId: { type: String },
-  paymentId: { type: String },
+  paypalSaleId: { type: String },
 });
 
 const Transaction = mongoose.model("Transaction", transactionSchema);

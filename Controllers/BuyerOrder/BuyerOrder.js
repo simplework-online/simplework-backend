@@ -3,7 +3,8 @@ const CreateService = require("../../Models/CreateService");
 const Transaction = require("../../Models/Transaction");
 const Wallet = require("../../Models/Wallet");
 const cloudinary = require("cloudinary").v2;
-
+const Stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const paypal = require("../../Utils/paypal.config");
 const createOrder = async (req, res) => {
   try {
     const {
@@ -145,7 +146,6 @@ const getOneOrder = async (req, res) => {
 };
 //accept order
 const acceptOrderAndTransferAmount = async (req, res) => {
-  console.log("here");
   try {
     const order = await Order.findByIdAndUpdate(
       {
@@ -210,6 +210,14 @@ const changeOrderStatus = async (req, res) => {
       });
     }
 
+    const transaction = await Transaction.findById(order.transactionId);
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found",
+      });
+    }
+
     // Identify the user role
     const isBuyer = order.buyerId.toString() === userId;
     const isSeller = service.user_id.toString() === userId; // Get seller from service
@@ -221,8 +229,10 @@ const changeOrderStatus = async (req, res) => {
         (order.status === "Pending" || order.status === "Active")
       ) {
         order.status = "Cancelled";
+        await refundOrder(transaction);
       } else if (isSeller && order.status === "Pending") {
         order.status = "Cancelled";
+        await refundOrder(transaction);
       } else {
         return res.status(403).json({
           success: false,
@@ -344,6 +354,36 @@ const CancelledOrder = async (req, res) => {
   }
 };
 
+const refundOrder = async (transaction) => {
+  try {
+    if (transaction.paymentMethod === "PayPal") {
+      const saleId = transaction.paypalSaleId;
+
+      await new Promise((resolve, reject) => {
+        paypal.sale.refund(saleId, {}, async (error, refund) => {
+          if (error) {
+            console.error("PayPal Refund Error:", error);
+            return reject(new Error("PayPal refund failed"));
+          }
+
+          transaction.status = "Refunded";
+          await transaction.save();
+          resolve();
+        });
+      });
+    } else if (transaction.paymentMethod === "Stripe") {
+      await Stripe.refunds.create({
+        payment_intent: transaction.paymentIntentId,
+      });
+
+      transaction.status = "Refunded";
+      await transaction.save();
+    }
+  } catch (error) {
+    console.error("Refund Error:", error.message);
+    throw new Error("Refund process failed");
+  }
+};
 module.exports = {
   getOneOrder,
   getAllOrders,

@@ -18,7 +18,7 @@ const SendOffer = require("./Routes/sendOffer");
 const UpdateProfile = require("./Routes/updateProfile");
 const Transaction = require("./Models/Transaction");
 const Stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
+const releasePendingPayments = require("./Cronjobs/releasePayments");
 const PORT = process.env.PORT || 3000;
 
 // Allowed Origins
@@ -33,7 +33,7 @@ const allowedOrigins = [
   "https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app",
   "http://localhost:3001",
   "http://localhost:3000",
-  "https://6aa0-119-73-99-41.ngrok-free.app",
+  "https://3259-119-73-99-41.ngrok-free.app",
 ];
 
 // Proper CORS Middleware
@@ -87,12 +87,41 @@ app.post(
     res.sendStatus(200);
   }
 );
+// app.post("/paypal-webhook", express.json(), async (req, res) => {
+//   const event = req.body;
+//   console.log(
+//     "🔔 PayPal Webhook Event Received:",
+//     JSON.stringify(event, null, 2)
+//   );
+
+//   if (event.event_type === "PAYMENT.SALE.COMPLETED") {
+//     console.log("✅ Payment completed successfully!");
+
+//     const saleId = event.resource.id;
+//     const transactionId = event.resource.parent_payment;
+
+//     console.log("💰 Sale ID:", saleId);
+//     console.log("💳 Transaction ID:", transactionId);
+
+//     await Transaction.findOneAndUpdate(
+//       { _id: transactionId }, // Ensure this matches your database field
+//       { paypalSaleId: saleId },
+//       { new: true }
+//     );
+
+//     return res.status(200).send("Payment confirmed and updated.");
+//   }
+
+//   res.status(200).send("Webhook received but not a sale completion event.");
+// });
 
 app.use(cookieParser());
 app.use(fileUpload({ useTempFiles: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
+app.get("/test", (req, res) => {
+  return res.status(200).json({ message: "Hi" });
+});
 // WebSocket Setup
 const io = new Server(server, {
   cors: {
@@ -181,7 +210,7 @@ app.use((err, req, res, next) => {
 
 // Connect to Database
 dbConnect();
-
+releasePendingPayments();
 // Start Server
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

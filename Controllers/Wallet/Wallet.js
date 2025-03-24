@@ -28,12 +28,13 @@ const connectStripe = async (req, res) => {
   try {
     const userId = req.payload._id;
     const { code, state } = req.body;
+    console.log(code, process.env.STRIPE_SECRET_KEY);
 
     const response = await Stripe.oauth.token({
       grant_type: "authorization_code",
       code,
     });
-
+    console.log(response);
     const stripeUserId = response.stripe_user_id;
 
     let wallet = await Wallet.findOne({ userId: userId });
@@ -54,13 +55,75 @@ const connectStripe = async (req, res) => {
 
     res.json({ success: true, message: "Stripe account connected!", wallet });
   } catch (error) {
-    console.error("Stripe callback error:", error);
     res
       .status(500)
       .json({ success: false, message: "Failed to connect Stripe" });
   }
 };
 
+const connectStripeNew = async (req, res) => {
+  try {
+    const STRIPE_CLIENT_ID = process.env.STRIPE_CLIENT_ID;
+    const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
+    const { code, state } = req.query;
+    const userId = state;
+
+    if (!code) {
+      return res.status(400).json({ error: "Authorization code is required" });
+    }
+
+    // Exchange code for access token
+    const { data } = await axios.post(
+      "https://connect.stripe.com/oauth/token",
+      new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: STRIPE_CLIENT_ID,
+        client_secret: STRIPE_SECRET,
+        code,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const stripeUserId = data.stripe_user_id;
+    const accessToken = data.access_token;
+
+    // Fetch account details
+    const accountDetails = await axios.get(
+      `https://api.stripe.com/v1/accounts/${stripeUserId}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    const stripeAccountId = accountDetails.data.id;
+
+    // Store Stripe email in the database
+
+    let wallet = await Wallet.findOne({ userId });
+
+    if (wallet) {
+      wallet.stripeAccountId = stripeAccountId;
+      await wallet.save();
+    } else {
+      wallet = new Wallet({
+        userId,
+        stripeAccountId,
+        pendingBalance: 0,
+        balance: 0,
+      });
+      await wallet.save();
+    }
+
+    res.redirect(`${process.env.FRONTEND_URL}/success`);
+  } catch (error) {
+    console.error("Stripe OAuth Error:", error);
+    res.status(500).json({ error: "Failed to connect Stripe" });
+  }
+};
 const connectPayPal = async (req, res) => {
   const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
   const PAYPAL_SECRET = process.env.PAYPAL_CLIENT_SECRET;
@@ -123,4 +186,9 @@ const connectPayPal = async (req, res) => {
   }
 };
 
-module.exports = { fetchWallet, connectStripe, connectPayPal };
+module.exports = {
+  fetchWallet,
+  connectStripe,
+  connectPayPal,
+  connectStripeNew,
+};

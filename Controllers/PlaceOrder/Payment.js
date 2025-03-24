@@ -70,13 +70,14 @@ const payWithPaypal = async (req, res) => {
       intent: "sale",
       payer: { payment_method: "paypal" },
       redirect_urls: {
-        return_url: `${process.env.BASE_URL}${process.env.FRONTEND_PORT}/success?orderId=${orderId}&transactionId=${transaction._id}`,
-        cancel_url: `${process.env.BASE_URL}${process.env.FRONTEND_PORT}/cancel?orderId=${orderId}&transactionId=${transaction._id}`,
+        return_url: `${process.env.BACKEND_URL}/success?orderId=${orderId}&transactionId=${transaction._id}`,
+        cancel_url: `${process.env.FRONTEND_URL}/cancel?orderId=${orderId}&transactionId=${transaction._id}`,
       },
       transactions: [
         {
           amount: { currency: "USD", total: price },
           description: `Purchase of ${serviceData.title}`,
+          custom: transaction._id,
         },
       ],
     };
@@ -134,8 +135,8 @@ const payWithStripe = async (req, res) => {
         },
       ],
       mode: "payment",
-      success_url: `${process.env.BASE_URL}${process.env.FRONTEND_PORT}/success?orderId=${orderId}&transactionId=${transaction._id}`,
-      cancel_url: `${process.env.BASE_URL}${process.env.FRONTEND_PORT}/cancel?orderId=${orderId}&transactionId=${transaction._id}`,
+      success_url: `${process.env.FRONTEND_URL}/success?orderId=${orderId}&transactionId=${transaction._id}`,
+      cancel_url: `${process.env.FRONTEND_URL}/cancel?orderId=${orderId}&transactionId=${transaction._id}`,
       metadata: {
         transaction_id: transaction._id.toString(),
         buyer_id: buyerId,
@@ -170,8 +171,28 @@ const paymentSuccess = async (req, res) => {
           return res.status(400).json({ error: "Payment not approved" });
         }
 
+        // Extract saleId from the PayPal response
+        const saleId =
+          payment.transactions?.[0]?.related_resources?.[0]?.sale?.id;
+
+        if (!saleId) {
+          console.error("Sale ID not found in the PayPal response.");
+          return res.status(500).json({ error: "Sale ID not found" });
+        }
+
+        // Update transaction with saleId
+        const transaction = await Transaction.findByIdAndUpdate(transactionId, {
+          paypalSaleId: saleId,
+        });
+
+        if (!transaction) {
+          return res.status(404).json({ error: "Transaction not found" });
+        }
+
+        console.log("Transaction updated with Sale ID:", transaction);
+
         res.redirect(
-          `${process.env.BASE_URL}${process.env.FRONTEND_PORT}/success?orderId=${orderId}&transactionId=${transactionId}`
+          `${process.env.FRONTEND_URL}/success?orderId=${orderId}&transactionId=${transactionId}`
         );
       }
     );
@@ -191,7 +212,7 @@ const refundPayment = async (req, res) => {
     }
 
     if (transaction.paymentMethod === "PayPal") {
-      const saleId = transaction.paymentId; // PayPal sale ID
+      const saleId = transaction.paypalSaleId; // PayPal sale ID
       paypal.sale.refund(saleId, {}, async (error, refund) => {
         if (error) {
           console.error("PayPal Refund Error:", error);

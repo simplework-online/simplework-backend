@@ -15,4 +15,6 @@ router.use("/", require("./Withdrawl"));
 router.use("/", require("./Order"));
 router.use("/", require("./Wallet"));
 router.use("/admin", require("./admin"));
+router.use("/", require("./Profile"));
+
 module.exports = router;

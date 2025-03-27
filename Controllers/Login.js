@@ -23,6 +23,7 @@ const SignUp = async (req, res, next) => {
     servicesExperties: Joi.string(),
     education: Joi.string(),
     certificate: Joi.string(),
+    currency: Joi.string(),
   }).validate(req.body);
   if (value.error) {
     next(createError(400, value.error.details[0].message));
@@ -39,6 +40,7 @@ const SignUp = async (req, res, next) => {
       servicesExperties,
       education,
       certificate,
+      currency,
     } = req.body;
     const user = await User.findOne({ email });
     if (user) {
@@ -75,6 +77,7 @@ const SignUp = async (req, res, next) => {
         certificate,
         chatlistId: chatList._id,
         groupChatListId: groupChatList._id,
+        currency,
       });
       console.log(location, status);
 
@@ -94,6 +97,7 @@ const SignUp = async (req, res, next) => {
         favouriteGigs: newUser.favouriteGigs,
         createdAt: newUser.createdAt,
         updatedAt: newUser.updatedAt,
+        currency: newUser.currency,
       };
       console.log(location, status);
       const token = jwt.sign(userTokenData, jwtKey, { expiresIn: "30d" });
@@ -129,11 +133,18 @@ const SignIn = async (req, res, next) => {
     const user = await User.findOne({
       email: email.toLowerCase(),
     });
+
     if (user) {
       const isPasswordCorrect = bcrypt.compareSync(
         req.body.password,
         user.password
       );
+      if (user.deleteStatus) {
+        // return res
+        //   .status(404)
+        //   .json({ success: false, message: "User not found" });
+        next(createError(404, "User not found!"));
+      }
       if (isPasswordCorrect) {
         const userData = {
           _id: user._id,
@@ -148,6 +159,7 @@ const SignIn = async (req, res, next) => {
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         };
+        await user.updateOne({ onlineStatus: true });
         const token = jwt.sign(userData, jwtKey, { expiresIn: "30d" });
 
         res
@@ -192,6 +204,11 @@ const GetLoggedInUser = async (req, res, next) => {
     const user = await User.findById(userId);
 
     if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    if (user.deleteStatus) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
@@ -256,7 +273,9 @@ const forgetPasswordStepTwo = async (req, res, next) => {
     Otp: Joi.number().required(),
   }).validate(req.body);
   if (value.error) {
-    return res.status(400).json({message:value.error.details[0].message ,success:false}) ;
+    return res
+      .status(400)
+      .json({ message: value.error.details[0].message, success: false });
   }
 
   try {
@@ -265,9 +284,7 @@ const forgetPasswordStepTwo = async (req, res, next) => {
     if (decoded.otp === Number(Otp)) {
       return res.status(200).json({ success: true, message: "OTP verified" });
     } else {
-     return  res
-     .status(400)
-     .json({ message: "Wrong Otp!", success:false });
+      return res.status(400).json({ message: "Wrong Otp!", success: false });
     }
   } catch (err) {
     next(err);
@@ -308,6 +325,14 @@ const resetPassword = async (req, res, next) => {
 };
 
 const logout = async (req, res, next) => {
+  console.log(req.params);
+  //set user onlineStatus to false on db
+  const user = await User.findOneAndUpdate(
+    { _id: req.params.id },
+    { onlineStatus: false },
+    { new: true }
+  );
+
   res
     .clearCookie("accessToken", {
       sameSite: "none",

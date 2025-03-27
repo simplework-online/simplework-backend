@@ -19,6 +19,8 @@ const UpdateProfile = require("./Routes/updateProfile");
 const Transaction = require("./Models/Transaction");
 const Stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const releasePendingPayments = require("./Cronjobs/releasePayments");
+const user = require("./Models/User");
+
 const PORT = process.env.PORT || 3000;
 
 // Allowed Origins
@@ -31,9 +33,10 @@ const allowedOrigins = [
   "https://simplework.online",
   "http://simplework.online",
   "https://64d0e60e759c686d7b0305fd--grand-tanuki-76c5f9.netlify.app",
-  "http://localhost:3001",
   "http://localhost:3000",
+  "http://localhost:3001",
   "https://3259-119-73-99-41.ngrok-free.app",
+  "*",
 ];
 
 // Proper CORS Middleware
@@ -46,7 +49,7 @@ app.use(
         callback(new Error("CORS Not Allowed"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
   })
 );
@@ -126,7 +129,7 @@ app.get("/test", (req, res) => {
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   },
 });
@@ -139,9 +142,18 @@ const socketIdMap = notificationController.socketIdMap;
 // WebSocket Connection
 io.on("connection", (socket) => {
   console.log("A user connected with socket ID:", socket.id);
-
+  socket.emit("connected", { message: "User connected" });
   socket.on("setUserId", (userId) => {
     socketIdMap.set(userId, socket.id);
+    console.log(`User with ID ${userId} connected with socket ID ${socket.id}`);
+    //update user status to online
+    user.findByIdAndUpdate(userId, { onlineStatus: true }, (err, user) => {
+      if (err) {
+        console.log("Error updating user status:", err);
+      } else {
+        console.log("User status updated:", user);
+      }
+    });
   });
 
   socket.on("chatMessage", (message, callback) => {
@@ -157,7 +169,7 @@ io.on("connection", (socket) => {
 
   socket.on("sendNotification", (data) => {
     const { sender, receiver, type, message } = data;
-
+    console.log("Notification data:", data);
     fetch("http://145.223.101.250:3000/notification", {
       method: "POST",
       headers: {
@@ -186,6 +198,13 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     for (const [userId, socketId] of socketIdMap.entries()) {
       if (socketId === socket.id) {
+        user.findByIdAndUpdate(userId, { onlineStatus: false }, (err, user) => {
+          if (err) {
+            console.log("Error updating user status:", err);
+          } else {
+            console.log("User status updated:", user);
+          }
+        });
         socketIdMap.delete(userId);
         console.log(`User with ID ${userId} disconnected.`);
         break;

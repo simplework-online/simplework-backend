@@ -20,5 +20,5 @@ router.get("/signInbyid/:id", GetUserByID);
 router.post("/forget-password/send-email", forgetPasswordStepOne);
 router.post("/forget-password/verify-code", forgetPasswordStepTwo);
 router.post("/forget-password/reset-password", resetPassword);
-router.get("/logout", logout);
+router.get("/logout/:id", logout);
 module.exports = router;

@@ -231,6 +231,6 @@ app.use((err, req, res, next) => {
 dbConnect();
 releasePendingPayments();
 // Start Server
-server.lisen(POT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });

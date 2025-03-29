@@ -228,7 +228,7 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to Database
-dbConnect();
+dbConnect(;
 releasePendingPayments();
 // Start Server
 server.listen(PORT, () => {
